@@ -1,0 +1,16 @@
+/* Ghana-themed colors */
+body {
+    background-color: #f9f9f9;
+}
+h1 {
+    color: #de1f26; /* Red */
+}
+.stButton > button {
+    background-color: #0f7d32; /* Green */
+    color: white;
+}
+.stDownloadButton > button {
+    background-color: #fcd116; /* Yellow */
+    color: black;
+    font-weight: bold;
+}
