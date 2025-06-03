@@ -1,5 +1,5 @@
 streamlit==1.33.0
-langchain-community==0.0.26
+langchain-community==0.0.34
 langchain==0.1.16
 chromadb==0.4.24
 sentence-transformers==2.6.1
@@ -11,3 +11,6 @@ fpdf2==2.7.8
 typing-extensions==4.9.0
 rich==10.14.0
 markdown-it-py>=2.2.0,<3.0.0
+
+
+
