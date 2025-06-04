@@ -1,7 +1,7 @@
 import streamlit as st
 from huggingface_hub import login
 # Access the token from secrets.toml
-hf_token = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+hf_token = st.secrets["secrets.toml"]
 # Authenticate with Hugging Face
 login(token=hf_token)
 # Now you can use HF models (e.g., download or inference)
