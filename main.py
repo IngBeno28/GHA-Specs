@@ -4,7 +4,12 @@ from huggingface_hub import login
 hf_token = st.secrets["hf_token"]
 # Authenticate with Hugging Face
 login(token=hf_token)
-# Now you can use HF models (e.g., download or inference)
+try:
+    hf_token = st.secrets["hf_token"]
+    login(token=hf_token)
+except KeyError:
+    st.error("Hugging Face token not found in secrets. Please configure it.")
+    st.stop()
 st.success("✅ Successfully authenticated with Hugging Face!")
 import fitz  # PyMuPDF
 from langchain.vectorstores import Chroma
