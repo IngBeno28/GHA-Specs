@@ -1,6 +1,6 @@
 import streamlit as st
 from huggingface_hub import login
-# Access the token from secrets.toml
+# Access the token from secrets.toml using a consistent key name
 hf_token = st.secrets["hf_token"]
 # Authenticate with Hugging Face
 login(token=hf_token)
