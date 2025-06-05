@@ -3,7 +3,7 @@ import streamlit as st
 from huggingface_hub import login, HfFolder
 import pysqlite3
 import sys
-sys.modules["pysqlite3"] = sys.modules.pop("pysqlite3")
+sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
 import chromadb
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
@@ -17,7 +17,7 @@ from typing import Optional, Tuple, List, Dict, Any
 # Display package versions for debugging
 st.sidebar.markdown("### Environment Info")
 st.sidebar.text(f"Python: {sys.version.split()[0]}")
-st.sidebar.text(f"SQLite: {sqlite3.sqlite_version}")
+st.sidebar.text(f"SQLite: {pysqlite3.sqlite_version}")
 
 # Constants
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
