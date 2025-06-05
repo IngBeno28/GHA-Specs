@@ -3,7 +3,7 @@ import streamlit as st
 from huggingface_hub import login, HfFolder
 import pysqlite3
 import sys
-sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
+sys.modules["pysqlite3"] = sys.modules.pop("pysqlite3")
 import chromadb
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
