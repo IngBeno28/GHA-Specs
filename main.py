@@ -90,48 +90,58 @@ if pdf_file:
         user_input = st.text_input("💬 Ask a question:")
         if user_input:
             with st.spinner("🧠 Thinking..."):
-                retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-                qa_chain = RetrievalQA.from_chain_type(
-                    llm=HuggingFaceHub(
-                        repo_id="google/flan-t5-large",
-                        model_kwargs={"temperature": 0.3, "max_new_tokens": 512}
-                    ),
-                    chain_type="stuff",
-                    retriever=retriever,
-                    return_source_documents=True
-                )
-                result = qa_chain({"query": user_input})
-                response = result["result"]
-                
-            st.markdown("### 📌 Answer")
-            st.success(response)
-            
-            # Show source documents
-            with st.expander("🔍 See source documents"):
-                for doc in result["source_documents"]:
-                    st.write(doc.page_content)
-                    st.write("---")
+                try:
+                    retriever = vectordb.as_retriever(search_kwargs={"k": 3})
+                    qa_chain = RetrievalQA.from_chain_type(
+                        llm=HuggingFaceHub(
+                            repo_id="google/flan-t5-large",
+                            model_kwargs={"temperature": 0.3, "max_new_tokens": 512}
+                        ),
+                        chain_type="stuff",
+                        retriever=retriever,
+                        return_source_documents=True
+                    )
+                    result = qa_chain({"query": user_input})
+                    
+                    # Safely access result dictionary
+                    response = result.get("result", "I couldn't find an answer to your question.")
+                    
+                    st.markdown("### 📌 Answer")
+                    st.success(response)
+                    
+                    # Show source documents if available
+                    with st.expander("🔍 See source documents"):
+                        for doc in result.get("source_documents", []):
+                            st.write(doc.page_content)
+                            st.write("---")
+                            
+                except Exception as e:
+                    st.error(f"Error processing your question: {str(e)}")
+                    st.error("Please try a different question or check your PDF content.")
                     
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
         st.error("Please ensure you have the correct dependencies installed.")
 
-# Footer
+# Footer with error handling
 st.markdown("---")
-footer = """
-<style>
-.footer {
-    font-size: 0.8rem;
-    color: #6c757d;
-    text-align: center;
-    padding: 10px;
-    margin-top: 30px;
-}
-</style>
-<div class="footer">
-    <p>GHA SpecBot v1.0 | © 2007 Ghana Highway Authority</p>
-    <p>Powered by LangChain and HuggingFace | Python {version}</p>
-    <p>For support contact: wiafe1713@gmail.com</p>
-</div>
-""".format(version=sys.version.split()[0])
-st.markdown(footer, unsafe_allow_html=True)
+try:
+    footer = """
+    <style>
+    .footer {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-align: center;
+        padding: 10px;
+        margin-top: 30px;
+    }
+    </style>
+    <div class="footer">
+        <p>GHA SpecBot v1.0 | © 2007 Ghana Highway Authority</p>
+        <p>Powered by LangChain and HuggingFace | Python {version}</p>
+        <p>For support contact: wiafe1713@gmail.com</p>
+    </div>
+    """.format(version=sys.version.split()[0])
+    st.markdown(footer, unsafe_allow_html=True)
+except Exception as e:
+    st.error(f"Error rendering footer: {str(e)}")
