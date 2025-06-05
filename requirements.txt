@@ -11,6 +11,6 @@ fpdf2==2.7.8
 typing-extensions==4.9.0
 rich==10.14.0
 markdown-it-py>=2.2.0,<3.0.0
-sqlite3 >= 3.35.0
+pysqlite3-binary
 
 
