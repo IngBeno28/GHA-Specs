@@ -86,9 +86,9 @@ if pdf_file:
         st.error(f"An error occurred: {str(e)}")
         st.error("Please ensure you have the correct dependencies installed.")
 
-# Footer
+# Fixed Footer
 st.markdown("---")
-st.markdown(""")
+footer = """
 <style>
 .footer {
     font-size: 0.8rem;
@@ -100,7 +100,8 @@ st.markdown(""")
 </style>
 <div class="footer">
     <p>GHA SpecBot v1.1 | © 2007 Ghana Highway Authority</p>
-    <p>Powered by Automation_Hub | Python {python_version}</p>
-    <p>For support contact: specs@ghanahighways.gov.gh</p>
+    <p>Powered by Automation_Hub | Python {version}</p>
+    <p>For support contact: wiafe1713@gmail.com</p>
 </div>
-""".format(python_version=sys.version.split()[0]), unsafe_allow_html=True)
+""".format(version=sys.version.split()[0])
+st.markdown(footer, unsafe_allow_html=True)
