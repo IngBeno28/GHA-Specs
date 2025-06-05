@@ -1,6 +1,7 @@
 import os
 import streamlit as st
 from huggingface_hub import login, HfFolder
+import chromadb
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -15,50 +16,44 @@ st.sidebar.markdown("### Environment Info")
 st.sidebar.text(f"Python: {sys.version.split()[0]}")
 st.sidebar.text(f"SQLite: {sqlite3.sqlite_version}")
 
-# Improved Hugging Face authentication
+# Hugging Face authentication
 def setup_huggingface():
     try:
-        # Try getting token from secrets first
-        hf_token = st.secrets.get("HF_TOKEN")
+        hf_token = st.secrets.get("HF_TOKEN") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
         
-        if not hf_token:
-            # Fallback to environment variable
-            hf_token = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
-            
         if not hf_token:
             st.error("Hugging Face token not found. Please configure it in secrets.toml or environment variables.")
             st.stop()
             
-        # Validate token format
         if not hf_token.startswith("hf_"):
             st.error("Invalid token format. Hugging Face tokens should start with 'hf_'")
             st.stop()
             
-        # Set environment variable
         os.environ["HUGGINGFACEHUB_API_TOKEN"] = hf_token
-        
-        # Try login with validation
-        try:
-            login(token=hf_token, add_to_git_credential=False)
-            HfFolder.save_token(hf_token)
-            return True
-        except Exception as e:
-            st.error(f"Failed to authenticate with Hugging Face: {str(e)}")
-            st.error("Please check your token is valid and has the correct permissions.")
-            st.stop()
+        login(token=hf_token, add_to_git_credential=False)
+        HfFolder.save_token(hf_token)
+        return True
             
     except Exception as e:
         st.error(f"Authentication error: {str(e)}")
         st.stop()
 
-# Initialize Hugging Face
 setup_huggingface()
 
-# UI styling
+# ChromaDB client initialization
+def get_chroma_client():
+    try:
+        return chromadb.PersistentClient(path="./chroma_db")
+    except Exception as e:
+        st.error(f"Failed to initialize ChromaDB: {str(e)}")
+        st.error("Please ensure SQLite >= 3.35.0 is installed or try Chroma's cloud version.")
+        st.stop()
+
+# UI
 st.title("📘 GHA SpecBot")
 st.caption("Ask questions from the Ghana Highway Authority Standard Specification (2007)")
 
-# PDF Upload
+# PDF Processing
 pdf_file = st.file_uploader("📄 Upload GHA Specification PDF", type="pdf")
 
 if pdf_file:
@@ -70,23 +65,26 @@ if pdf_file:
                 text += page.get_text()
         st.success("✅ PDF successfully loaded!")
 
-        # Chunk and embed text
+        # Document processing
         splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         chunks = splitter.create_documents([text])
 
         with st.spinner("🔍 Embedding document..."):
             embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-            # Use persistent storage
+            chroma_client = get_chroma_client()
+            
             vectordb = Chroma.from_documents(
                 documents=chunks,
                 embedding=embeddings,
+                client=chroma_client,
+                collection_name="gha_specs",
                 persist_directory="./chroma_db"
             )
             vectordb.persist()
 
         st.success("✅ Document indexed and ready!")
 
-        # User input
+        # QA System
         user_input = st.text_input("💬 Ask a question:")
         if user_input:
             with st.spinner("🧠 Thinking..."):
@@ -103,13 +101,9 @@ if pdf_file:
                     )
                     result = qa_chain({"query": user_input})
                     
-                    # Safely access result dictionary
-                    response = result.get("result", "I couldn't find an answer to your question.")
-                    
                     st.markdown("### 📌 Answer")
-                    st.success(response)
+                    st.success(result.get("result", "I couldn't find an answer to your question."))
                     
-                    # Show source documents if available
                     with st.expander("🔍 See source documents"):
                         for doc in result.get("source_documents", []):
                             st.write(doc.page_content)
@@ -117,14 +111,11 @@ if pdf_file:
                             
                 except Exception as e:
                     st.error(f"Error processing your question: {str(e)}")
-                    st.error("Please try a different question or check your PDF content.")
                     
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
-        st.error("Please ensure you have the correct dependencies installed.")
+        st.error(f"PDF processing error: {str(e)}")
 
-# Footer with simplified styling and better error handling
-st.markdown("---")
+# Enhanced Footer with error handling
 try:
     footer = """
     <div style="
@@ -134,8 +125,8 @@ try:
         padding: 10px;
         margin-top: 30px;
     ">
-        <p>GHA SpecBot v1.0 | © 2007 Ghana Highway Authority</p>
-        <p>Powered by LangChain and HuggingFace | Python {version}</p>
+        <p>GHA SpecBot v1.1 | © 2007 Ghana Highway Authority</p>
+        <p>Powered by LangChain, ChromaDB and HuggingFace | Python {version}</p>
         <p>For support contact: wiafe1713@gmail.com</p>
     </div>
     """.format(version=sys.version.split()[0])
