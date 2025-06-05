@@ -123,20 +123,17 @@ if pdf_file:
         st.error(f"An error occurred: {str(e)}")
         st.error("Please ensure you have the correct dependencies installed.")
 
-# Footer with error handling
+# Footer with simplified styling and better error handling
 st.markdown("---")
 try:
     footer = """
-    <style>
-    .footer {
+    <div style="
         font-size: 0.8rem;
         color: #6c757d;
         text-align: center;
         padding: 10px;
         margin-top: 30px;
-    }
-    </style>
-    <div class="footer">
+    ">
         <p>GHA SpecBot v1.0 | © 2007 Ghana Highway Authority</p>
         <p>Powered by LangChain and HuggingFace | Python {version}</p>
         <p>For support contact: wiafe1713@gmail.com</p>
@@ -144,4 +141,4 @@ try:
     """.format(version=sys.version.split()[0])
     st.markdown(footer, unsafe_allow_html=True)
 except Exception as e:
-    st.error(f"Error rendering footer: {str(e)}")
+    st.warning("Footer could not be displayed properly")
