@@ -106,7 +106,7 @@ st.markdown("""
 }
 </style>
 <div class="footer">
-    <p>GHA SpecBot v1.0 | © 2023 Ghana Highway Authority | Powered by Automation_Hub</p>
+    <p>GHA SpecBot v1.0 | © 2025 Ghana Highway Authority | Powered by Automation_Hub</p>
     <p>For support contact: wiafe1713@gmail.com</p>
 </div>
 """, unsafe_allow_html=True)
