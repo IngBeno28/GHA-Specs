@@ -1,6 +1,6 @@
 import os
 import streamlit as st
-from huggingface_hub import login
+from huggingface_hub import login, HfFolder
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -15,14 +15,44 @@ st.sidebar.markdown("### Environment Info")
 st.sidebar.text(f"Python: {sys.version.split()[0]}")
 st.sidebar.text(f"SQLite: {sqlite3.sqlite_version}")
 
-# Secure login to Hugging Face using secret token
-try:
-    hf_token = st.secrets["HF_TOKEN"]
-    login(token=hf_token)
-    os.environ["HUGGINGFACEHUB_API_TOKEN"] = hf_token
-except KeyError:
-    st.error("Hugging Face token not found in secrets. Please configure it.")
-    st.stop()
+# Improved Hugging Face authentication
+def setup_huggingface():
+    try:
+        # Try getting token from secrets first
+        hf_token = st.secrets.get("HF_TOKEN")
+        
+        if not hf_token:
+            # Fallback to environment variable
+            hf_token = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+            
+        if not hf_token:
+            st.error("Hugging Face token not found. Please configure it in secrets.toml or environment variables.")
+            st.stop()
+            
+        # Validate token format
+        if not hf_token.startswith("hf_"):
+            st.error("Invalid token format. Hugging Face tokens should start with 'hf_'")
+            st.stop()
+            
+        # Set environment variable
+        os.environ["HUGGINGFACEHUB_API_TOKEN"] = hf_token
+        
+        # Try login with validation
+        try:
+            login(token=hf_token, add_to_git_credential=False)
+            HfFolder.save_token(hf_token)
+            return True
+        except Exception as e:
+            st.error(f"Failed to authenticate with Hugging Face: {str(e)}")
+            st.error("Please check your token is valid and has the correct permissions.")
+            st.stop()
+            
+    except Exception as e:
+        st.error(f"Authentication error: {str(e)}")
+        st.stop()
+
+# Initialize Hugging Face
+setup_huggingface()
 
 # UI styling
 st.title("📘 GHA SpecBot")
@@ -86,7 +116,7 @@ if pdf_file:
         st.error(f"An error occurred: {str(e)}")
         st.error("Please ensure you have the correct dependencies installed.")
 
-# Fixed Footer
+# Footer
 st.markdown("---")
 footer = """
 <style>
@@ -99,8 +129,8 @@ footer = """
 }
 </style>
 <div class="footer">
-    <p>GHA SpecBot v1.1 | © 2007 Ghana Highway Authority</p>
-    <p>Powered by Automation_Hub | Python {version}</p>
+    <p>GHA SpecBot v1.0 | © 2007 Ghana Highway Authority</p>
+    <p>Powered by LangChain and HuggingFace | Python {version}</p>
     <p>For support contact: wiafe1713@gmail.com</p>
 </div>
 """.format(version=sys.version.split()[0])
