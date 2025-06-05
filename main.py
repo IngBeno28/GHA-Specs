@@ -88,7 +88,7 @@ if pdf_file:
 
 # Footer
 st.markdown("---")
-st.markdown("""
+st.markdown(""")
 <style>
 .footer {
     font-size: 0.8rem;
