@@ -8,18 +8,12 @@ from langchain.chains import RetrievalQA
 from langchain.llms import HuggingFaceHub
 import fitz  # PyMuPDF
 import sqlite3
+import sys
 
-# Check and upgrade SQLite version if needed
-def check_sqlite_version():
-    try:
-        conn = sqlite3.connect(':memory:')
-        cursor = conn.cursor()
-        cursor.execute('SELECT sqlite_version();')
-        version = cursor.fetchone()[0]
-        st.sidebar.info(f"SQLite version: {version}")
-        conn.close()
-    except Exception as e:
-        st.error(f"SQLite version check failed: {e}")
+# Display package versions for debugging
+st.sidebar.markdown("### Environment Info")
+st.sidebar.text(f"Python: {sys.version.split()[0]}")
+st.sidebar.text(f"SQLite: {sqlite3.sqlite_version}")
 
 # Secure login to Hugging Face using secret token
 try:
@@ -33,7 +27,6 @@ except KeyError:
 # UI styling
 st.title("📘 GHA SpecBot")
 st.caption("Ask questions from the Ghana Highway Authority Standard Specification (2007)")
-check_sqlite_version()
 
 # PDF Upload
 pdf_file = st.file_uploader("📄 Upload GHA Specification PDF", type="pdf")
@@ -53,7 +46,7 @@ if pdf_file:
 
         with st.spinner("🔍 Embedding document..."):
             embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-            # Use persistent storage and specify ChromaDB version
+            # Use persistent storage
             vectordb = Chroma.from_documents(
                 documents=chunks,
                 embedding=embeddings,
@@ -83,7 +76,7 @@ if pdf_file:
             st.markdown("### 📌 Answer")
             st.success(response)
             
-            # Optionally show source documents
+            # Show source documents
             with st.expander("🔍 See source documents"):
                 for doc in result["source_documents"]:
                     st.write(doc.page_content)
@@ -106,7 +99,8 @@ st.markdown("""
 }
 </style>
 <div class="footer">
-    <p>GHA SpecBot v1.0 | © 2025 Ghana Highway Authority | Powered by Automation_Hub</p>
-    <p>For support contact: wiafe1713@gmail.com</p>
+    <p>GHA SpecBot v1.1 | © 2007 Ghana Highway Authority</p>
+    <p>Powered by Automation_Hub | Python {python_version}</p>
+    <p>For support contact: specs@ghanahighways.gov.gh</p>
 </div>
-""", unsafe_allow_html=True)
+""".format(python_version=sys.version.split()[0]), unsafe_allow_html=True)
