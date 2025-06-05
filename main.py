@@ -2,8 +2,6 @@
 import os
 import streamlit as st
 from huggingface_hub import login
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
