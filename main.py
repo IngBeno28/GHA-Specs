@@ -1,11 +1,11 @@
 import streamlit as st
 from huggingface_hub import login
 # Access the token from secrets.toml using a consistent key name
-hf_token = st.secrets["hf_token"]
+hf_token = st.secrets["HF_TOKEN"]
 # Authenticate with Hugging Face
 login(token=hf_token)
 try:
-    hf_token = st.secrets["hf_token"]
+    hf_token = st.secrets["HF_TOKEN"]
     login(token=hf_token)
 except KeyError:
     st.error("Hugging Face token not found in secrets. Please configure it.")
