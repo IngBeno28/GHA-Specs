@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from huggingface_hub import login, HfFolder
-from langchain.vectorstores import Chroma
+import Chromadb
 client = chromadb.HttpClient(host="localhost", port="8000")
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
