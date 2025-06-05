@@ -1,6 +1,9 @@
 import os
 import streamlit as st
 from huggingface_hub import login, HfFolder
+import pysqlite3
+import sys
+sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
 import chromadb
 from langchain.vectorstores import Chroma
 from langchain.embeddings import HuggingFaceEmbeddings
@@ -8,8 +11,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.chains import RetrievalQA
 from langchain.llms import HuggingFaceHub
 import fitz  # PyMuPDF
-import sqlite3
-import sys
 import hashlib
 from typing import Optional, Tuple, List, Dict, Any
 
