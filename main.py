@@ -10,14 +10,28 @@ from langchain.llms import HuggingFaceHub
 import fitz  # PyMuPDF
 import sqlite3
 import sys
+import hashlib
+from typing import Optional, Tuple, List, Dict, Any
 
 # Display package versions for debugging
 st.sidebar.markdown("### Environment Info")
 st.sidebar.text(f"Python: {sys.version.split()[0]}")
 st.sidebar.text(f"SQLite: {sqlite3.sqlite_version}")
 
-# Hugging Face authentication
-def setup_huggingface():
+# Constants
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+LLM_MODEL = "google/flan-t5-large"
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+SEARCH_KWARGS = {"k": 3}
+LLM_TEMPERATURE = 0.3
+MAX_NEW_TOKENS = 512
+PERSIST_DIR = "./chroma_db"
+COLLECTION_NAME = "gha_specs"
+
+# Hugging Face authentication with enhanced validation
+def setup_huggingface() -> bool:
+    """Initialize Hugging Face authentication with proper error handling."""
     try:
         hf_token = st.secrets.get("HF_TOKEN") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
         
@@ -38,98 +52,152 @@ def setup_huggingface():
         st.error(f"Authentication error: {str(e)}")
         st.stop()
 
-setup_huggingface()
-
-# ChromaDB client initialization
-def get_chroma_client():
+# ChromaDB client initialization with persistence
+def get_chroma_client() -> chromadb.PersistentClient:
+    """Initialize and return a ChromaDB client with error handling."""
     try:
-        return chromadb.PersistentClient(path="./chroma_db")
+        os.makedirs(PERSIST_DIR, exist_ok=True)
+        return chromadb.PersistentClient(path=PERSIST_DIR)
     except Exception as e:
         st.error(f"Failed to initialize ChromaDB: {str(e)}")
         st.error("Please ensure SQLite >= 3.35.0 is installed or try Chroma's cloud version.")
         st.stop()
 
-# UI
-st.title("📘 GHA SpecBot")
-st.caption("Ask questions from the Ghana Highway Authority Standard Specification (2007)")
+def get_file_hash(file_bytes: bytes) -> str:
+    """Generate a hash for the uploaded file to detect changes."""
+    return hashlib.md5(file_bytes).hexdigest()
 
-# PDF Processing
-pdf_file = st.file_uploader("📄 Upload GHA Specification PDF", type="pdf")
-
-if pdf_file:
+def extract_text_from_pdf(pdf_file) -> str:
+    """Extract text from PDF with proper error handling."""
     try:
         with st.spinner("📖 Reading PDF..."):
             text = ""
             doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
             for page in doc:
                 text += page.get_text()
-        st.success("✅ PDF successfully loaded!")
+        return text
+    except Exception as e:
+        st.error(f"PDF processing error: {str(e)}")
+        st.stop()
 
-        # Document processing
-        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+def process_document(text: str) -> Tuple[Chroma, str]:
+    """Process and index the document text."""
+    try:
+        # Document splitting
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP
+        )
         chunks = splitter.create_documents([text])
-
+        
+        # Embedding and vector store creation
         with st.spinner("🔍 Embedding document..."):
-            embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
             chroma_client = get_chroma_client()
             
             vectordb = Chroma.from_documents(
                 documents=chunks,
                 embedding=embeddings,
                 client=chroma_client,
-                collection_name="gha_specs",
-                persist_directory="./chroma_db"
+                collection_name=COLLECTION_NAME,
+                persist_directory=PERSIST_DIR
             )
             vectordb.persist()
+            
+        return vectordb, "✅ Document indexed and ready!"
+        
+    except Exception as e:
+        st.error(f"Document processing error: {str(e)}")
+        st.stop()
 
-        st.success("✅ Document indexed and ready!")
+def initialize_qa_chain(vectordb: Chroma) -> RetrievalQA:
+    """Initialize the QA chain with proper configuration."""
+    return RetrievalQA.from_chain_type(
+        llm=HuggingFaceHub(
+            repo_id=LLM_MODEL,
+            model_kwargs={
+                "temperature": LLM_TEMPERATURE,
+                "max_new_tokens": MAX_NEW_TOKENS
+            }
+        ),
+        chain_type="stuff",
+        retriever=vectordb.as_retriever(search_kwargs=SEARCH_KWARGS),
+        return_source_documents=True
+    )
 
-        # QA System
+def display_results(result: Dict[str, Any]) -> None:
+    """Display the QA results in a user-friendly format."""
+    st.markdown("### 📌 Answer")
+    st.success(result.get("result", "I couldn't find an answer to your question."))
+    
+    with st.expander("🔍 See source documents"):
+        for i, doc in enumerate(result.get("source_documents", []), 1):
+            st.markdown(f"**Document {i}**")
+            st.write(doc.page_content)
+            st.write("---")
+
+def main():
+    """Main application function."""
+    # Initialize Hugging Face
+    setup_huggingface()
+    
+    # UI Setup
+    st.title("📘 GHA SpecBot")
+    st.caption("Ask questions from the Ghana Highway Authority Standard Specification (2007)")
+    
+    # Session state initialization
+    if 'file_hash' not in st.session_state:
+        st.session_state.file_hash = None
+    if 'vectordb' not in st.session_state:
+        st.session_state.vectordb = None
+    
+    # PDF Processing
+    pdf_file = st.file_uploader("📄 Upload GHA Specification PDF", type="pdf")
+    
+    if pdf_file:
+        current_hash = get_file_hash(pdf_file.getvalue())
+        
+        # Only reprocess if the file has changed
+        if current_hash != st.session_state.file_hash or st.session_state.vectordb is None:
+            st.session_state.file_hash = current_hash
+            
+            text = extract_text_from_pdf(pdf_file)
+            st.success("✅ PDF successfully loaded!")
+            
+            vectordb, message = process_document(text)
+            st.session_state.vectordb = vectordb
+            st.success(message)
+    
+    # QA System
+    if st.session_state.get('vectordb'):
         user_input = st.text_input("💬 Ask a question:")
         if user_input:
             with st.spinner("🧠 Thinking..."):
                 try:
-                    retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-                    qa_chain = RetrievalQA.from_chain_type(
-                        llm=HuggingFaceHub(
-                            repo_id="google/flan-t5-large",
-                            model_kwargs={"temperature": 0.3, "max_new_tokens": 512}
-                        ),
-                        chain_type="stuff",
-                        retriever=retriever,
-                        return_source_documents=True
-                    )
+                    qa_chain = initialize_qa_chain(st.session_state.vectordb)
                     result = qa_chain({"query": user_input})
-                    
-                    st.markdown("### 📌 Answer")
-                    st.success(result.get("result", "I couldn't find an answer to your question."))
-                    
-                    with st.expander("🔍 See source documents"):
-                        for doc in result.get("source_documents", []):
-                            st.write(doc.page_content)
-                            st.write("---")
-                            
+                    display_results(result)
                 except Exception as e:
                     st.error(f"Error processing your question: {str(e)}")
-                    
-    except Exception as e:
-        st.error(f"PDF processing error: {str(e)}")
 
-# Enhanced Footer with error handling
-try:
-    footer = """
-    <div style="
-        font-size: 0.8rem;
-        color: #6c757d;
-        text-align: center;
-        padding: 10px;
-        margin-top: 30px;
-    ">
-        <p>GHA SpecBot v1.1 | © 2007 Ghana Highway Authority</p>
-        <p>Powered by LangChain, ChromaDB and HuggingFace | Python {version}</p>
-        <p>For support contact: wiafe1713@gmail.com</p>
-    </div>
-    """.format(version=sys.version.split()[0])
-    st.markdown(footer, unsafe_allow_html=True)
-except Exception as e:
-    st.warning("Footer could not be displayed properly")
+    # Enhanced Footer with error handling
+    try:
+        footer = """
+        <div style="
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: center;
+            padding: 10px;
+            margin-top: 30px;
+        ">
+            <p>GHA SpecBot v1.1 | © 2007 Ghana Highway Authority</p>
+            <p>Powered by LangChain, ChromaDB and HuggingFace | Python {version}</p>
+            <p>For support contact: wiafe1713@gmail.com</p>
+        </div>
+        """.format(version=sys.version.split()[0])
+        st.markdown(footer, unsafe_allow_html=True)
+    except Exception as e:
+        st.warning("Footer could not be displayed properly")
+
+if __name__ == "__main__":
+    main()
