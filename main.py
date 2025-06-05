@@ -59,7 +59,7 @@ def get_chroma_client():from chromadb import PersistentClient
     try:
         os.makedirs(PERSIST_DIR, exist_ok=True)
         return chromadb.PersistentClient(path=PERSIST_DIR)
-    except Exception as e:
+        except Exception as e:
         st.error(f"Failed to initialize ChromaDB: {str(e)}")
         st.error("Please ensure SQLite >= 3.35.0 is installed or try Chroma's cloud version.")
         st.stop()
