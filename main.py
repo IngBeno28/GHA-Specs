@@ -54,7 +54,7 @@ def setup_huggingface() -> bool:
         st.stop()
 
 # ChromaDB client initialization with persistence
-def get_chroma_client() -> from chromadb import PersistentClient:
+def get_chroma_client():from chromadb import PersistentClient:
     """Initialize and return a ChromaDB client with error handling."""
     try:
         os.makedirs(PERSIST_DIR, exist_ok=True)
