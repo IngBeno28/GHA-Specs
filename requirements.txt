@@ -1,16 +1,64 @@
-streamlit==1.33.0
-langchain-community>=0.0.32,<0.1
-langchain==0.1.16
-chromadb==0.3.29
-sentence-transformers==2.6.1
-huggingface_hub==0.21.4
-torch==2.1.0
-transformers==4.39.3
-PyMuPDF==1.23.6
-fpdf2==2.7.8
-typing-extensions==4.9.0
-rich==10.14.0
-markdown-it-py>=2.2.0,<3.0.0
-pysqlite3-binary
+# ==========================================
+# GHA SpecBot Requirements
+# Python Dependencies for Document Q&A System
+# ==========================================
 
+# Core Web Framework
+streamlit>=1.28.0
 
+# Hugging Face Libraries
+huggingface-hub>=0.17.0
+transformers>=4.35.0
+torch>=2.0.0
+sentence-transformers>=2.2.2
+
+# LangChain Ecosystem
+langchain>=0.0.340
+langchain-community>=0.0.10
+langchain-core>=0.1.0
+
+# Vector Database
+chromadb>=0.4.15
+pysqlite3-binary>=0.5.0
+
+# PDF Processing
+PyMuPDF>=1.23.0
+
+# Data Processing & Utilities
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.11.0
+
+# HTTP Requests (for API calls)
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Additional Utilities
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+typing-extensions>=4.8.0
+
+# Optional: For enhanced performance
+faiss-cpu>=1.7.4
+accelerate>=0.24.0
+
+# Development & Testing (optional)
+pytest>=7.4.0
+black>=23.0.0
+flake8>=6.1.0
+
+# ==========================================
+# Installation Instructions:
+# ==========================================
+# 1. Create virtual environment: python -m venv venv
+# 2. Activate environment: 
+#    - Windows: venv\Scripts\activate
+#    - macOS/Linux: source venv/bin/activate
+# 3. Install dependencies: pip install -r requirements.txt
+# 4. For GPU support, install: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# ==========================================
+
+# Platform-specific notes:
+# - For Windows: May need Microsoft Visual C++ Build Tools
+# - For macOS: May need Xcode Command Line Tools
+# - For Linux: May need build-essential package
